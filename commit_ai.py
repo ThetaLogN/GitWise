@@ -206,14 +206,27 @@ def build_prompt(diff, language):
 
     lang_line = lang_instruction.get(language, lang_instruction["en"])
 
-    return f"""Write a git commit message following the Conventional Commits specification based on the git diff provided below.
-Rules:
-- Format: <type>(<optional scope>): <description>
-- Include a blank line and then a more detailed body if necessary.
-- Do not wrap the message in code blocks or quotes.
-- Only output the commit message, no introductions or explanations.
-- Keep the subject line under 72 characters.
-- {lang_line}
+    return f"""Analyze the following git diff and write exactly ONE git commit message using the Conventional Commits format.
+
+STRICT RULES:
+1. Output ONLY ONE commit message — never multiple.
+2. First line (subject): <type>(<optional scope>): <short description> (max 72 chars)
+3. Optionally, add a blank line followed by a short body (2-3 lines max).
+4. Do NOT wrap in code blocks, quotes, or markdown.
+5. Do NOT write introductions, explanations, or alternatives.
+6. Choose the ONE type that best describes the overall change: feat, fix, refactor, docs, chore, style, test, perf, ci, build.
+7. If multiple files are changed, summarize the intent in a single message.
+8. {lang_line}
+
+EXAMPLES OF CORRECT OUTPUT:
+feat(auth): add JWT token refresh mechanism
+refactor: rename project and update configuration files
+fix(api): handle timeout errors in data fetching
+
+EXAMPLES OF WRONG OUTPUT (never do this):
+feat(file1): change X
+fix(file2): change Y
+docs(file3): change Z
 
 Git Diff:
 {diff}
