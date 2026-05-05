@@ -8,18 +8,18 @@ Nessun dato lascia il tuo computer. Tutto gira in locale.
 
 ## ✨ Funzionalità
 
-- 🧠 Genera commit message analizzando il `git diff --cached`
-- 📏 Formato [Conventional Commits](https://www.conventionalcommits.org/) (`feat:`, `fix:`, `refactor:`, ecc.)
-- 🌍 Supporto multilingua (🇬🇧 EN, 🇮🇹 IT, 🇪🇸 ES, 🇫🇷 FR, 🇩🇪 DE)
-- ⚡ Troncamento intelligente dei diff grandi (sommario + dettaglio)
-- 🧹 Sanitizzazione automatica dell'output (rimuove code blocks, prefissi, ecc.)
-- ⚙️ Configurazione flessibile (file `.commit-ai.conf` + variabili d'ambiente)
-- 🚫 Skip facile con `SKIP_COMMIT_AI=1`
-- 🔇 Fallback silenzioso se Ollama non è attivo
+- Genera commit message analizzando il `git diff --cached`
+- Formato [Conventional Commits](https://www.conventionalcommits.org/) (`feat:`, `fix:`, `refactor:`, ecc.)
+- Supporto multilingua (🇬🇧 EN, 🇮🇹 IT, 🇪🇸 ES, 🇫🇷 FR, 🇩🇪 DE)
+- Troncamento intelligente dei diff grandi (sommario + dettaglio)
+- Sanitizzazione automatica dell'output (rimuove code blocks, prefissi, ecc.)
+- Configurazione flessibile (file `.commit-ai.conf` + variabili d'ambiente)
+- Skip facile con `SKIP_COMMIT_AI=1`
+- Fallback silenzioso se Ollama non è attivo
 
 ---
 
-## 📋 Prerequisiti
+## Prerequisiti
 
 - **Python 3.6+**
 - **Git**
@@ -27,7 +27,7 @@ Nessun dato lascia il tuo computer. Tutto gira in locale.
 
 ---
 
-## 🚀 Installazione
+## Installazione
 
 ```bash
 # Clona il repository (o copia i file)
@@ -47,7 +47,7 @@ Lo script:
 
 ---
 
-## 📖 Uso
+## Uso
 
 ### Commit con AI
 ```bash
@@ -68,7 +68,7 @@ COMMIT_AI_MODEL=llama3:8b git commit
 
 ---
 
-## ⚙️ Configurazione
+## Configurazione
 
 Crea un file `.commit-ai.conf` nella **root del tuo repository** per personalizzare il comportamento:
 
@@ -97,7 +97,7 @@ Un file di esempio è disponibile in `.commit-ai.conf.example`.
 
 ---
 
-## 🗑️ Disinstallazione
+## Disinstallazione
 
 ```bash
 cd /path/to/your/repo
@@ -108,7 +108,7 @@ Rimuove i file `commit_ai.py` e `prepare-commit-msg` dalla cartella `.git/hooks/
 
 ---
 
-## 🔍 Troubleshooting
+## Troubleshooting
 
 ### Il commit si blocca / non succede niente
 - Assicurati che Ollama sia avviato (`ollama serve` o l'app desktop)
@@ -124,7 +124,7 @@ Rimuove i file `commit_ai.py` e `prepare-commit-msg` dalla cartella `.git/hooks/
 
 ---
 
-## 📂 Struttura del Progetto
+## Struttura del Progetto
 
 ```
 commit/
@@ -138,6 +138,6 @@ commit/
 
 ---
 
-## 📄 Licenza
+## Licenza
 
 MIT
