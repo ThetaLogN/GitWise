@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# ── Local-Commit-AI — Installer / Uninstaller ─────────────────────
+# ── GitWise — Installer / Uninstaller ─────────────────────
 # Uso:
 #   ./install.sh              → Installa l'hook nel repository corrente
 #   ./install.sh --uninstall  → Rimuove l'hook dal repository corrente
@@ -19,7 +19,7 @@ HOOKS_DIR=".git/hooks"
 
 # ── Uninstall ──────────────────────────────────────────────────────
 if [ "$1" = "--uninstall" ]; then
-    echo -e "${CYAN}Disinstallazione di Local-Commit-AI...${NC}"
+    echo -e "${CYAN}Disinstallazione di GitWise...${NC}"
 
     if [ ! -d ".git" ]; then
         echo -e "${RED}Errore: questa directory non è la root di un repository git.${NC}"
@@ -43,7 +43,7 @@ fi
 
 # ── Install ────────────────────────────────────────────────────────
 echo -e "${CYAN}╔════════════════════════════════════════╗${NC}"
-echo -e "${CYAN}║     Local-Commit-AI — Installazione   ║${NC}"
+echo -e "${CYAN}║     GitWise — Installazione   ║${NC}"
 echo -e "${CYAN}╚════════════════════════════════════════╝${NC}"
 echo ""
 

@@ -1,4 +1,4 @@
-# Local-Commit-AI
+# GitWise
 
 Genera automaticamente messaggi di commit in formato **Conventional Commits** utilizzando un modello AI locale tramite [Ollama](https://ollama.ai/).
 

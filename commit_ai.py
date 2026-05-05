@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Local-Commit-AI — Genera messaggi di commit con Ollama.
+GitWise — Genera messaggi di commit con Ollama.
 Invocato dall'hook prepare-commit-msg.
 """
 import sys

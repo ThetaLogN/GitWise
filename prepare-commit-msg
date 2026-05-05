@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# ── Local-Commit-AI — prepare-commit-msg hook ──────────────────────
+# ── GitWise — prepare-commit-msg hook ──────────────────────
 # $1 = file del messaggio di commit
 # $2 = sorgente del messaggio (message, merge, squash, commit, template)
 # $3 = SHA-1 del commit (solo per amend)
