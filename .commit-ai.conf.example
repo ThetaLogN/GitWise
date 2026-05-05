@@ -1,0 +1,23 @@
+# .commit-ai.conf — Configurazione di esempio
+# Posiziona questo file nella root del tuo repository git.
+# Ogni valore può essere sovrascritto con variabili d'ambiente (prefisso COMMIT_AI_).
+
+# Modello Ollama da utilizzare
+# Env override: COMMIT_AI_MODEL
+MODEL=qwen2.5-coder:1.5b
+
+# Endpoint API di Ollama
+# Env override: COMMIT_AI_URL
+OLLAMA_URL=http://localhost:11434/api/generate
+
+# Lunghezza massima del diff inviato al modello (in caratteri)
+# Env override: COMMIT_AI_MAX_DIFF
+MAX_DIFF_LENGTH=3000
+
+# Lingua del messaggio di commit (en, it, es, fr, de)
+# Env override: COMMIT_AI_LANGUAGE
+LANGUAGE=en
+
+# Timeout in secondi per la risposta di Ollama
+# Env override: COMMIT_AI_TIMEOUT
+TIMEOUT=120

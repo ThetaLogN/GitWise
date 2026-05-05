@@ -1,13 +1,20 @@
 #!/bin/bash
 
-# $1 is the file containing the initial commit message
-# $2 is the source of the commit message
-# $3 is the commit SHA-1 for amend
+# ── Local-Commit-AI — prepare-commit-msg hook ──────────────────────
+# $1 = file del messaggio di commit
+# $2 = sorgente del messaggio (message, merge, squash, commit, template)
+# $3 = SHA-1 del commit (solo per amend)
 
 COMMIT_MSG_FILE=$1
 COMMIT_SOURCE=$2
 
-# Only run if not an amend, merge, or using a pre-existing message
+# ── Skip via variabile d'ambiente ──────────────────────────────────
+# Uso: SKIP_COMMIT_AI=1 git commit -m "manual message"
+if [ -n "$SKIP_COMMIT_AI" ]; then
+    exit 0
+fi
+
+# ── Esegui solo per nuovi commit (no amend, merge, message) ───────
 if [ -z "$COMMIT_SOURCE" ] || [ "$COMMIT_SOURCE" = "template" ]; then
     DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
     python3 "$DIR/commit_ai.py" "$COMMIT_MSG_FILE"

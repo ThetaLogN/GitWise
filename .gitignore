@@ -1,0 +1,5 @@
+commit_ai.log
+dummy_commit_msg
+test_msg.txt
+*.pyc
+__pycache__/
