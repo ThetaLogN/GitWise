@@ -1,4 +1,4 @@
-# 🤖 Local-Commit-AI
+# Local-Commit-AI
 
 Genera automaticamente messaggi di commit in formato **Conventional Commits** utilizzando un modello AI locale tramite [Ollama](https://ollama.ai/).
 
@@ -6,7 +6,7 @@ Nessun dato lascia il tuo computer. Tutto gira in locale.
 
 ---
 
-## ✨ Funzionalità
+## Funzionalità
 
 - Genera commit message analizzando il `git diff --cached`
 - Formato [Conventional Commits](https://www.conventionalcommits.org/) (`feat:`, `fix:`, `refactor:`, ecc.)
