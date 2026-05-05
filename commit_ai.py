@@ -219,56 +219,38 @@ def build_prompt(diff, language):
     """Costruisce il prompt per il modello in base alla lingua scelta."""
     
     if language == "it":
-        return f"""Analizza il seguente git diff e scrivi esattamente UN messaggio di commit seguendo il formato Conventional Commits.
+        return f"""Analizza le modifiche nel GIT DIFF fornito alla fine e scrivi un messaggio di commit professionale in formato Conventional Commits.
 
-REGOLE RIGIDE:
-1. Genera SOLO UN messaggio di commit — mai più di uno.
-2. Prima riga (oggetto): <tipo>(<ambito opzionale>): <breve descrizione> (max 72 caratteri)
-3. Opzionalmente, aggiungi una riga vuota seguita da un corpo breve (max 2-3 righe).
-4. NON racchiudere il messaggio in blocchi di codice, virgolette o markdown.
-5. NON scrivere introduzioni, spiegazioni o alternative.
-6. Scegli il tipo migliore tra: feat, fix, refactor, docs, chore, style, test, perf, ci, build.
-7. Se ci sono più file modificati, riassumi l'intento in un unico messaggio.
-8. SCRIVI IL MESSAGGIO IN ITALIANO.
+REGOLE DA SEGUIRE:
+1. Genera UN SOLO messaggio.
+2. Formato: <tipo>(<ambito>): <descrizione>
+3. Lingua: ITALIANO.
+4. Tipi ammessi: feat, fix, refactor, docs, chore, style, test, perf.
+5. NON usare introduzioni (es. "Ecco il messaggio...") o spiegazioni.
+6. NON copiare gli esempi qui sotto, usali solo per il FORMATO.
 
-ESEMPI DI OUTPUT CORRETTO:
-feat(auth): aggiunge meccanismo di refresh del token JWT
-refactor: rinomina il progetto e aggiorna i file di configurazione
-fix(api): gestisce gli errori di timeout nel recupero dati
+ESEMPIO FORMATO (NON COPIARE):
+tipo(ambito): descrizione breve della modifica
 
-ESEMPI DI OUTPUT ERRATO (non farlo mai):
-feat(file1): modifica X
-fix(file2): modifica Y
-docs(file3): modifica Z
-
-Git Diff:
+GIT DIFF:
 {diff}
 """
 
     # Default (English)
-    return f"""Analyze the following git diff and write exactly ONE git commit message using the Conventional Commits format.
+    return f"""Analyze the changes in the provided GIT DIFF at the end and write a professional commit message in Conventional Commits format.
 
 STRICT RULES:
-1. Output ONLY ONE commit message — never multiple.
-2. First line (subject): <type>(<optional scope>): <short description> (max 72 chars)
-3. Optionally, add a blank line followed by a short body (2-3 lines max).
-4. Do NOT wrap in code blocks, quotes, or markdown.
-5. Do NOT write introductions, explanations, or alternatives.
-6. Choose the ONE type that best describes the overall change: feat, fix, refactor, docs, chore, style, test, perf, ci, build.
-7. If multiple files are changed, summarize the intent in a single message.
-8. Write the commit message in English.
+1. Output ONLY ONE message.
+2. Format: <type>(<scope>): <description>
+3. Language: ENGLISH.
+4. Allowed types: feat, fix, refactor, docs, chore, style, test, perf.
+5. Do NOT include introductions or explanations.
+6. Do NOT copy the examples below, use them for FORMAT only.
 
-EXAMPLES OF CORRECT OUTPUT:
-feat(auth): add JWT token refresh mechanism
-refactor: rename project and update configuration files
-fix(api): handle timeout errors in data fetching
+FORMAT EXAMPLE (DO NOT COPY):
+type(scope): short description of the change
 
-EXAMPLES OF WRONG OUTPUT (never do this):
-feat(file1): change X
-fix(file2): change Y
-docs(file3): change Z
-
-Git Diff:
+GIT DIFF:
 {diff}
 """
 
