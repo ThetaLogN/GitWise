@@ -279,7 +279,7 @@ def main():
         method='POST'
     )
 
-    print("⏳ Generating commit message with Ollama...")
+    print("Generating commit message with GitWise...")
     sys.stdout.flush()
 
     try:
