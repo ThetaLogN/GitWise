@@ -42,23 +42,30 @@ cd /path/to/your/repo
 
 Lo script:
 1. Verifica che `git`, `python3` e `ollama` siano installati
-2. Scarica il modello `qwen2.5-coder:1.5b`
+2. Scarica il modello `qwen2.5-coder:7b`
 3. Installa l'hook `prepare-commit-msg` nella cartella `.git/hooks/`
 
 ---
 
 ## Uso
 
-### Commit con AI
+### Commit con AI (modalità interattiva)
 ```bash
 git add .
 git commit
-# → L'editor si apre con il messaggio già generato dall'AI
+# → GitWise genera il messaggio e te lo mostra nel terminale
+# → Scegli: [Y] Accetta  [r] Rigenera  [n] Scrivi manualmente
+```
+
+### Commit con messaggio manuale (`-m`)
+```bash
+git commit -m "il mio messaggio"
+# → GitWise non si attiva, il messaggio viene usato così com'è
 ```
 
 ### Commit senza AI (skip una tantum)
 ```bash
-SKIP_COMMIT_AI=1 git commit -m "messaggio manuale"
+SKIP_COMMIT_AI=1 git commit
 ```
 
 ### Commit con modello diverso (una tantum)

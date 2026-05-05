@@ -14,7 +14,7 @@ from datetime import datetime
 
 # ── Defaults ────────────────────────────────────────────────────────
 DEFAULT_OLLAMA_URL = "http://localhost:11434/api/generate"
-DEFAULT_MODEL = "qwen2.5-coder:1.5b"
+DEFAULT_MODEL = "qwen2.5-coder:7b"
 DEFAULT_MAX_DIFF = 3000
 DEFAULT_LANGUAGE = "en"
 DEFAULT_TIMEOUT = 120
@@ -98,6 +98,27 @@ def log(msg):
             f.write(f"[{timestamp}] {msg}\n")
     except OSError:
         pass  # Non bloccare mai il commit per un errore di log
+
+# ── Terminal I/O ───────────────────────────────────────────────────
+
+def tty_print(msg):
+    """Stampa un messaggio sul terminale (via /dev/tty per funzionare negli hook)."""
+    try:
+        with open('/dev/tty', 'w') as tty:
+            tty.write(msg)
+            tty.flush()
+    except OSError:
+        print(msg, flush=True)
+
+
+def tty_input(prompt):
+    """Legge input dall'utente via /dev/tty (necessario negli hook git)."""
+    try:
+        tty_print(prompt)
+        with open('/dev/tty', 'r') as tty:
+            return tty.readline().strip().lower()
+    except OSError:
+        return "y"  # Se non c'è un terminale, accetta automaticamente
 
 # ── Git Diff ────────────────────────────────────────────────────────
 
@@ -232,6 +253,74 @@ Git Diff:
 {diff}
 """
 
+# ── Ollama API ─────────────────────────────────────────────────────
+
+def call_ollama(config, prompt):
+    """Invia il prompt a Ollama e restituisce il messaggio generato (già sanitizzato)."""
+    data = {
+        "model": config["MODEL"],
+        "prompt": prompt,
+        "stream": False
+    }
+
+    req = urllib.request.Request(
+        config["OLLAMA_URL"],
+        data=json.dumps(data).encode('utf-8'),
+        headers={'Content-Type': 'application/json'},
+        method='POST'
+    )
+
+    with urllib.request.urlopen(req, timeout=config["TIMEOUT"]) as response:
+        log(f"Ollama response status: {response.status}")
+        if response.status == 200:
+            response_data = json.loads(response.read().decode('utf-8'))
+            commit_msg = response_data.get('response', '').strip()
+            commit_msg = sanitize_commit_message(commit_msg)
+            log(f"Generated commit_msg ({len(commit_msg)} chars): {commit_msg[:100]}...")
+            return commit_msg
+    return ""
+
+# ── Modalità Interattiva ───────────────────────────────────────────
+
+def interactive_confirm(config, prompt, commit_msg):
+    """
+    Mostra il messaggio generato e chiede conferma all'utente.
+    Ritorna (messaggio, accettato) dove accettato indica se il messaggio è stato confermato.
+    Il messaggio viene sempre restituito per poterlo pre-compilare nell'editor.
+    """
+    while True:
+        tty_print("\n┌─────────────────────────────────────────────┐\n")
+        tty_print("│  GitWise — Commit Message Generato          │\n")
+        tty_print("└─────────────────────────────────────────────┘\n\n")
+
+        # Mostra il messaggio con indentazione
+        for line in commit_msg.split('\n'):
+            tty_print(f"  {line}\n")
+
+        tty_print("\n")
+        choice = tty_input("  [Y] Accetta  [r] Rigenera  [e] Modifica nell'editor → ")
+
+        if choice in ('', 'y', 'yes', 's', 'si', 'sì'):
+            log("User accepted commit message")
+            return commit_msg, True
+        elif choice in ('r', 'rigenera', 'regenerate'):
+            tty_print("\n  ⏳ Rigenerando...\n")
+            try:
+                commit_msg = call_ollama(config, prompt)
+                if not commit_msg:
+                    tty_print("  Errore: risposta vuota da Ollama.\n")
+                    return "", False
+            except Exception as e:
+                tty_print(f"  Errore: {e}\n")
+                log(f"Regeneration error: {e}")
+                return "", False
+        elif choice in ('e', 'n', 'no', 'edit', 'modifica', 'skip'):
+            log("User wants to edit in editor")
+            tty_print("  Ok, il messaggio sarà pre-compilato nell'editor.\n")
+            return commit_msg, False
+        else:
+            tty_print("  Scelta non valida. Usa: y (accetta), r (rigenera), e (modifica)\n")
+
 # ── Main ────────────────────────────────────────────────────────────
 
 def main():
@@ -266,48 +355,34 @@ def main():
 
     log("Sending request to Ollama")
 
-    data = {
-        "model": config["MODEL"],
-        "prompt": prompt,
-        "stream": False
-    }
-
-    req = urllib.request.Request(
-        config["OLLAMA_URL"],
-        data=json.dumps(data).encode('utf-8'),
-        headers={'Content-Type': 'application/json'},
-        method='POST'
-    )
-
-    print("Generating commit message with GitWise...")
-    sys.stdout.flush()
+    tty_print("⏳ Generating commit message with GitWise...\n")
 
     try:
-        with urllib.request.urlopen(req, timeout=config["TIMEOUT"]) as response:
-            log(f"Ollama response status: {response.status}")
-            if response.status == 200:
-                response_data = json.loads(response.read().decode('utf-8'))
-                commit_msg = response_data.get('response', '').strip()
+        commit_msg = call_ollama(config, prompt)
 
-                # Sanitizza l'output
-                commit_msg = sanitize_commit_message(commit_msg)
-                log(f"Generated commit_msg ({len(commit_msg)} chars): {commit_msg[:100]}...")
+        if not commit_msg:
+            tty_print("⚠️  Risposta vuota da Ollama. Scrivi il commit manualmente.\n")
+            sys.exit(0)
 
-                if commit_msg:
-                    with open(commit_msg_file, 'r') as f:
-                        original_content = f.read()
+        # Modalità interattiva: mostra e chiedi conferma
+        commit_msg, accepted = interactive_confirm(config, prompt, commit_msg)
 
-                    with open(commit_msg_file, 'w') as f:
-                        f.write(f"{commit_msg}\n\n{original_content}")
+        if commit_msg:
+            with open(commit_msg_file, 'r') as f:
+                original_content = f.read()
 
-                    print("✅ Commit message generated!")
-                    sys.stdout.flush()
-                    log("commit_msg written successfully")
+            with open(commit_msg_file, 'w') as f:
+                f.write(f"{commit_msg}\n\n{original_content}")
+
+            if accepted:
+                tty_print("✅ Commit message applicato!\n")
+            else:
+                tty_print("📝 Messaggio pre-compilato. Modificalo nell'editor.\n")
+            log("commit_msg written successfully")
 
     except Exception as e:
         log(f"Error calling Ollama: {e}")
-        print(f"⚠️  Ollama non raggiungibile ({e}). Scrivi il commit manualmente.")
-        sys.stdout.flush()
+        tty_print(f"⚠️  Ollama non raggiungibile ({e}). Scrivi il commit manualmente.\n")
         sys.exit(0)
 
 

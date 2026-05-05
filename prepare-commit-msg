@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# ── GitWise — prepare-commit-msg hook ──────────────────────
+# ── GitWise — prepare-commit-msg hook ──────────────────────────────
 # $1 = file del messaggio di commit
 # $2 = sorgente del messaggio (message, merge, squash, commit, template)
 # $3 = SHA-1 del commit (solo per amend)
@@ -14,7 +14,9 @@ if [ -n "$SKIP_COMMIT_AI" ]; then
     exit 0
 fi
 
-# ── Esegui solo per nuovi commit (no amend, merge, message) ───────
+# ── Esegui solo per nuovi commit ──────────────────────────────────
+# Skip se: -m (message), merge, squash, amend (commit)
+# Attiva solo se: nessuna sorgente (editor vuoto) o template
 if [ -z "$COMMIT_SOURCE" ] || [ "$COMMIT_SOURCE" = "template" ]; then
     DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
     python3 "$DIR/commit_ai.py" "$COMMIT_MSG_FILE"

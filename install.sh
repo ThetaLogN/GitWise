@@ -80,7 +80,7 @@ echo -e "${GREEN}✓${NC} python3 trovato ($(python3 --version 2>&1))"
 echo ""
 
 # Pull del modello
-MODEL_NAME="qwen2.5-coder:1.5b"
+MODEL_NAME="qwen2.5-coder:7b"
 echo -e "${YELLOW}Scaricamento modello '$MODEL_NAME'...${NC}"
 ollama pull $MODEL_NAME
 echo -e "${GREEN}✓${NC} Modello pronto"
