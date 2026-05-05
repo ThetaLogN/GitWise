@@ -217,16 +217,35 @@ def sanitize_commit_message(msg):
 
 def build_prompt(diff, language):
     """Costruisce il prompt per il modello in base alla lingua scelta."""
-    lang_instruction = {
-        "en": "Write the commit message in English.",
-        "it": "Scrivi il messaggio di commit in italiano.",
-        "es": "Escribe el mensaje de commit en español.",
-        "fr": "Écris le message de commit en français.",
-        "de": "Schreibe die Commit-Nachricht auf Deutsch.",
-    }
+    
+    if language == "it":
+        return f"""Analizza il seguente git diff e scrivi esattamente UN messaggio di commit seguendo il formato Conventional Commits.
 
-    lang_line = lang_instruction.get(language, lang_instruction["en"])
+REGOLE RIGIDE:
+1. Genera SOLO UN messaggio di commit — mai più di uno.
+2. Prima riga (oggetto): <tipo>(<ambito opzionale>): <breve descrizione> (max 72 caratteri)
+3. Opzionalmente, aggiungi una riga vuota seguita da un corpo breve (max 2-3 righe).
+4. NON racchiudere il messaggio in blocchi di codice, virgolette o markdown.
+5. NON scrivere introduzioni, spiegazioni o alternative.
+6. Scegli il tipo migliore tra: feat, fix, refactor, docs, chore, style, test, perf, ci, build.
+7. Se ci sono più file modificati, riassumi l'intento in un unico messaggio.
+8. SCRIVI IL MESSAGGIO IN ITALIANO.
 
+ESEMPI DI OUTPUT CORRETTO:
+feat(auth): aggiunge meccanismo di refresh del token JWT
+refactor: rinomina il progetto e aggiorna i file di configurazione
+fix(api): gestisce gli errori di timeout nel recupero dati
+
+ESEMPI DI OUTPUT ERRATO (non farlo mai):
+feat(file1): modifica X
+fix(file2): modifica Y
+docs(file3): modifica Z
+
+Git Diff:
+{diff}
+"""
+
+    # Default (English)
     return f"""Analyze the following git diff and write exactly ONE git commit message using the Conventional Commits format.
 
 STRICT RULES:
@@ -237,7 +256,7 @@ STRICT RULES:
 5. Do NOT write introductions, explanations, or alternatives.
 6. Choose the ONE type that best describes the overall change: feat, fix, refactor, docs, chore, style, test, perf, ci, build.
 7. If multiple files are changed, summarize the intent in a single message.
-8. {lang_line}
+8. Write the commit message in English.
 
 EXAMPLES OF CORRECT OUTPUT:
 feat(auth): add JWT token refresh mechanism
@@ -298,13 +317,13 @@ def interactive_confirm(config, prompt, commit_msg):
             tty_print(f"  {line}\n")
 
         tty_print("\n")
-        choice = tty_input("  [Y] Accetta  [r] Rigenera  [e] Modifica nell'editor → ")
+        choice = tty_input("  [y] Accetta  [r] Rigenera  [e] Modifica nell'editor  [q] Rifiuta → ")
 
         if choice in ('', 'y', 'yes', 's', 'si', 'sì'):
             log("User accepted commit message")
             return commit_msg, True
         elif choice in ('r', 'rigenera', 'regenerate'):
-            tty_print("\n  ⏳ Rigenerando...\n")
+            tty_print("\n Rigenerando...\n")
             try:
                 commit_msg = call_ollama(config, prompt)
                 if not commit_msg:
@@ -314,12 +333,16 @@ def interactive_confirm(config, prompt, commit_msg):
                 tty_print(f"  Errore: {e}\n")
                 log(f"Regeneration error: {e}")
                 return "", False
-        elif choice in ('e', 'n', 'no', 'edit', 'modifica', 'skip'):
+        elif choice in ('e', 'edit', 'modifica'):
             log("User wants to edit in editor")
             tty_print("  Ok, il messaggio sarà pre-compilato nell'editor.\n")
             return commit_msg, False
+        elif choice in ('q', 'quit', 'rifiuta', 'n', 'no'):
+            log("User rejected AI commit message - aborting commit")
+            tty_print("  ❌ Commit annullato.\n")
+            sys.exit(1)
         else:
-            tty_print("  Scelta non valida. Usa: y (accetta), r (rigenera), e (modifica)\n")
+            tty_print("  Scelta non valida. Usa: y (accetta), r (rigenera), e (modifica), q (rifiuta)\n")
 
 # ── Main ────────────────────────────────────────────────────────────
 
@@ -355,7 +378,7 @@ def main():
 
     log("Sending request to Ollama")
 
-    tty_print("⏳ Generating commit message with GitWise...\n")
+    tty_print("Generating commit message with GitWise...\n")
 
     try:
         commit_msg = call_ollama(config, prompt)
@@ -377,7 +400,7 @@ def main():
             if accepted:
                 tty_print("✅ Commit message applicato!\n")
             else:
-                tty_print("📝 Messaggio pre-compilato. Modificalo nell'editor.\n")
+                tty_print("Messaggio pre-compilato. Modificalo nell'editor.\n")
             log("commit_msg written successfully")
 
     except Exception as e:
