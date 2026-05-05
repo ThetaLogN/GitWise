@@ -1,0 +1,14 @@
+#!/bin/bash
+
+# $1 is the file containing the initial commit message
+# $2 is the source of the commit message
+# $3 is the commit SHA-1 for amend
+
+COMMIT_MSG_FILE=$1
+COMMIT_SOURCE=$2
+
+# Only run if not an amend, merge, or using a pre-existing message
+if [ -z "$COMMIT_SOURCE" ] || [ "$COMMIT_SOURCE" = "template" ]; then
+    DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+    python3 "$DIR/commit_ai.py" "$COMMIT_MSG_FILE"
+fi
