@@ -71,7 +71,6 @@ Git Diff:
                         f.write(f"{commit_msg}\n\n{original_content}")
                         
     except (urllib.error.URLError, json.JSONDecodeError, KeyError, Exception):
-        # Fallback to manual commit message on failure
         sys.exit(0)
 
 if __name__ == "__main__":
