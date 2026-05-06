@@ -1,5 +1,7 @@
 # GitWise
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
 Genera automaticamente messaggi di commit in formato **Conventional Commits** utilizzando un modello AI locale tramite [Ollama](https://ollama.ai/).
 
 Nessun dato lascia il tuo computer. Tutto gira in locale.
@@ -29,20 +31,32 @@ Nessun dato lascia il tuo computer. Tutto gira in locale.
 
 ## Installazione
 
-```bash
-# Clona il repository (o copia i file)
-git clone <url-del-repo> ~/commit
+### 🚀 Installazione Rapida (consigliata)
 
-# Vai nella root del repository dove vuoi usare l'hook
+Dalla root del tuo repository git, esegui:
+
+```bash
+curl -sSL https://raw.githubusercontent.com/ThetaLogN/GitWise/main/install.sh | bash
+```
+
+### Installazione Manuale
+
+Se preferisci controllare i file prima di installarli:
+
+```bash
+# 1. Clona il repository
+git clone https://github.com/ThetaLogN/GitWise.git ~/GitWise
+
+# 2. Vai nella root del tuo repository git
 cd /path/to/your/repo
 
-# Lancia l'installer
-~/commit/install.sh
+# 3. Esegui l'installer locale
+~/GitWise/install.sh
 ```
 
 Lo script:
 1. Verifica che `git`, `python3` e `ollama` siano installati
-2. Scarica il modello `qwen2.5-coder:7b`
+2. Scarica il modello `qwen2.5-coder:7b` (se non presente)
 3. Installa l'hook `prepare-commit-msg` nella cartella `.git/hooks/`
 
 ---

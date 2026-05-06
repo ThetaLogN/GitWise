@@ -206,12 +206,7 @@ def sanitize_commit_message(msg):
     if not msg:
         return msg
 
-    # Tronca la subject line (prima riga) a 72 caratteri
-    lines = msg.split('\n')
-    if len(lines[0]) > 72:
-        lines[0] = lines[0][:69] + '...'
-
-    return '\n'.join(lines)
+    return msg
 
 # ── Prompt ──────────────────────────────────────────────────────────
 
@@ -228,6 +223,7 @@ REGOLE DA SEGUIRE:
 4. Tipi ammessi: feat, fix, refactor, docs, chore, style, test, perf.
 5. NON usare introduzioni (es. "Ecco il messaggio...") o spiegazioni.
 6. NON copiare gli esempi qui sotto, usali solo per il FORMATO.
+7. Mantieni la descrizione breve e concisa (max 72 caratteri).
 
 ESEMPIO FORMATO (NON COPIARE):
 tipo(ambito): descrizione breve della modifica
@@ -246,6 +242,7 @@ STRICT RULES:
 4. Allowed types: feat, fix, refactor, docs, chore, style, test, perf.
 5. Do NOT include introductions or explanations.
 6. Do NOT copy the examples below, use them for FORMAT only.
+7. Keep the description short and concise (max 72 characters).
 
 FORMAT EXAMPLE (DO NOT COPY):
 type(scope): short description of the change
@@ -366,7 +363,9 @@ def main():
         commit_msg = call_ollama(config, prompt)
 
         if not commit_msg:
-            tty_print("⚠️  Risposta vuota da Ollama. Scrivi il commit manualmente.\n")
+            with open(commit_msg_file, 'a') as f:
+                f.write("\n# ⚠️  GitWise: Risposta vuota da Ollama. Scrivi il commit manualmente.\n")
+            print("⚠️  Risposta vuota da Ollama. Scrivi il commit manualmente.", file=sys.stderr)
             sys.exit(0)
 
         # Modalità interattiva: mostra e chiedi conferma
@@ -386,8 +385,18 @@ def main():
             log("commit_msg written successfully")
 
     except Exception as e:
-        log(f"Error calling Ollama: {e}")
-        tty_print(f"⚠️  Ollama non raggiungibile ({e}). Scrivi il commit manualmente.\n")
+        log(f"GitWise error: {e}")
+        # Determina se è un errore di connessione o altro
+        error_type = "Ollama non raggiungibile" if "urlopen" in str(e) or "refused" in str(e) else "Errore interno"
+        error_msg = f"\n# ⚠️  GitWise: {error_type} ({e})\n# Scrivi il messaggio di commit manualmente.\n"
+        
+        try:
+            with open(commit_msg_file, 'a') as f:
+                f.write(error_msg)
+        except Exception as file_err:
+            log(f"Failed to write error comment to file: {file_err}")
+        
+        print(f"⚠️  GitWise: {error_type}. Scrivi il commit manualmente.", file=sys.stderr)
         sys.exit(0)
 
 

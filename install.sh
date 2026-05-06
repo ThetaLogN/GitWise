@@ -94,10 +94,22 @@ if [ -f "$HOOKS_DIR/prepare-commit-msg" ]; then
     echo -e "${YELLOW}⚠ Hook esistente salvato in: $BACKUP${NC}"
 fi
 
-# Copia degli script
+REPO_RAW_URL="https://raw.githubusercontent.com/ThetaLogN/GitWise/main"
+
+# Copia o scaricamento degli script
 echo "Installazione hook..."
-cp "$DIR/commit_ai.py" "$HOOKS_DIR/commit_ai.py"
-cp "$DIR/prepare-commit-msg" "$HOOKS_DIR/prepare-commit-msg"
+
+if [ -f "$DIR/commit_ai.py" ]; then
+    cp "$DIR/commit_ai.py" "$HOOKS_DIR/commit_ai.py"
+else
+    curl -sSL "$REPO_RAW_URL/commit_ai.py" -o "$HOOKS_DIR/commit_ai.py"
+fi
+
+if [ -f "$DIR/prepare-commit-msg" ]; then
+    cp "$DIR/prepare-commit-msg" "$HOOKS_DIR/prepare-commit-msg"
+else
+    curl -sSL "$REPO_RAW_URL/prepare-commit-msg" -o "$HOOKS_DIR/prepare-commit-msg"
+fi
 
 chmod +x "$HOOKS_DIR/commit_ai.py"
 chmod +x "$HOOKS_DIR/prepare-commit-msg"
