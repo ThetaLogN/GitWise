@@ -18,6 +18,7 @@ DEFAULT_MODEL = "qwen2.5-coder:7b"
 DEFAULT_MAX_DIFF = 3000
 DEFAULT_LANGUAGE = "en"
 DEFAULT_TIMEOUT = 120
+SUPPORTED_LANGUAGES = {"en", "it", "es", "fr", "de"}
 
 # ── Configuration ─────────────────────────────────────────────────
 
@@ -78,6 +79,11 @@ def load_config():
     # Cast numeric types
     config["MAX_DIFF_LENGTH"] = int(config["MAX_DIFF_LENGTH"])
     config["TIMEOUT"] = int(config["TIMEOUT"])
+
+    # Validate language
+    if config["LANGUAGE"] not in SUPPORTED_LANGUAGES:
+        log(f"Warning: unsupported language '{config['LANGUAGE']}', falling back to 'en'")
+        config["LANGUAGE"] = "en"
 
     return config
 
@@ -152,7 +158,7 @@ def get_git_stat():
 def smart_truncate_diff(diff, max_length):
     """
     Smart diff truncation:
-    1. Genera a summary with git diff --stat (always included)
+    1. Generates a summary with git diff --stat (always included)
     2. Fills remaining space with the actual diff, truncating by full lines
     """
     if len(diff) <= max_length:
@@ -181,11 +187,20 @@ def smart_truncate_diff(diff, max_length):
 
 # ── Output Sanitization ──────────────────────────────────────────
 
+# Pattern matching a valid conventional commit line
+_CC_PATTERN = re.compile(
+    r'^(feat|fix|refactor|docs|chore|style|test|perf|build|ci|revert)'
+    r'(\([^)]*\))?:\s*.+',
+    re.IGNORECASE
+)
+
+
 def sanitize_commit_message(msg):
     """
     Cleans the model's output:
     - Removes code blocks (```...```)
     - Removes common prefixes ("Here is...", "Commit message:", etc.)
+    - If multiple conventional commit lines are detected, keeps only the first
     - Removes leading/trailing whitespace
     """
     # Remove code blocks
@@ -198,6 +213,8 @@ def sanitize_commit_message(msg):
         r'^Commit message:\s*\n',
         r'^Suggested commit message:\s*\n',
         r'^The commit message.*?:\s*\n',
+        r'^Ecco.*?:\s*\n',
+        r'^Il messaggio.*?:\s*\n',
     ]
     for pattern in prefixes:
         msg = re.sub(pattern, '', msg, flags=re.IGNORECASE)
@@ -208,47 +225,119 @@ def sanitize_commit_message(msg):
     if not msg:
         return msg
 
-    return msg
+    # If model generated multiple conventional commit lines, keep only the first
+    lines = msg.split('\n')
+    cc_lines = [l.strip() for l in lines if _CC_PATTERN.match(l.strip())]
+    if len(cc_lines) > 1:
+        msg = cc_lines[0]
+
+    # Remove bullet points / numbered list markers
+    msg = re.sub(r'^[\d]+[.)\-]\s*', '', msg)
+    msg = re.sub(r'^[-*•]\s*', '', msg)
+
+    return msg.strip()
 
 
 # ── Prompt ──────────────────────────────────────────────────────────
 
 def build_prompt(diff, language):
     """Builds the prompt for the model based on the chosen language."""
-    
-    if language == "it":
-        return f"""Analizza le modifiche nel GIT DIFF fornito alla fine e scrivi un messaggio di commit professionale in formato Conventional Commits.
 
-REGOLE DA SEGUIRE:
-1. Genera UN SOLO messaggio.
-2. Formato: <tipo>(<ambito>): <descrizione>
-3. Lingua: ITALIANO.
-4. Tipi ammessi: feat, fix, refactor, docs, chore, style, test, perf.
-5. NON usare introduzioni (es. "Ecco il messaggio...") o spiegazioni.
-6. NON copiare gli esempi qui sotto, usali solo per il FORMATO.
-7. Mantieni la descrizione breve e concisa (max 72 caratteri).
+    prompts = {
+        "it": {
+            "intro": "Analizza le modifiche nel GIT DIFF fornito alla fine e scrivi UN SINGOLO messaggio di commit in formato Conventional Commits.",
+            "rules_title": "REGOLE OBBLIGATORIE",
+            "rules": [
+                "RISPONDI CON UNA SOLA RIGA. Non generare liste, elenchi o messaggi multipli.",
+                "Formato: <tipo>(<ambito>): <descrizione>",
+                "Lingua: ITALIANO.",
+                "Tipi ammessi: feat, fix, refactor, docs, chore, style, test, perf.",
+                "L'ambito deve essere un modulo logico (es. config, auth, ui), NON un nome di file.",
+                'NON scrivere introduzioni, spiegazioni o commenti aggiuntivi.',
+                "Riassumi TUTTE le modifiche in un unico messaggio coerente.",
+                "Max 72 caratteri per la descrizione.",
+            ],
+            "example_title": "ESEMPIO FORMATO (NON COPIARE)",
+            "example": "tipo(ambito): descrizione breve della modifica",
+        },
+        "es": {
+            "intro": "Analiza los cambios en el GIT DIFF proporcionado al final y escribe UN SOLO mensaje de commit en formato Conventional Commits.",
+            "rules_title": "REGLAS OBLIGATORIAS",
+            "rules": [
+                "RESPONDE CON UNA SOLA LÍNEA. No generes listas ni mensajes múltiples.",
+                "Formato: <tipo>(<ámbito>): <descripción>",
+                "Idioma: ESPAÑOL.",
+                "Tipos permitidos: feat, fix, refactor, docs, chore, style, test, perf.",
+                "El ámbito debe ser un módulo lógico (ej. config, auth, ui), NO un nombre de archivo.",
+                'NO incluyas introducciones, explicaciones ni comentarios adicionales.',
+                "Resume TODOS los cambios en un único mensaje coherente.",
+                "Máx 72 caracteres para la descripción.",
+            ],
+            "example_title": "EJEMPLO DE FORMATO (NO COPIAR)",
+            "example": "tipo(ámbito): descripción breve del cambio",
+        },
+        "fr": {
+            "intro": "Analyse les modifications dans le GIT DIFF fourni à la fin et rédige UN SEUL message de commit au format Conventional Commits.",
+            "rules_title": "RÈGLES OBLIGATOIRES",
+            "rules": [
+                "RÉPONDS AVEC UNE SEULE LIGNE. Ne génère pas de listes ni de messages multiples.",
+                "Format : <type>(<portée>): <description>",
+                "Langue : FRANÇAIS.",
+                "Types autorisés : feat, fix, refactor, docs, chore, style, test, perf.",
+                "La portée doit être un module logique (ex. config, auth, ui), PAS un nom de fichier.",
+                'N\'inclus PAS d\'introductions, d\'explications ni de commentaires supplémentaires.',
+                "Résume TOUS les changements en un seul message cohérent.",
+                "Max 72 caractères pour la description.",
+            ],
+            "example_title": "EXEMPLE DE FORMAT (NE PAS COPIER)",
+            "example": "type(portée): description courte de la modification",
+        },
+        "de": {
+            "intro": "Analysiere die Änderungen im bereitgestellten GIT DIFF am Ende und schreibe EINE EINZIGE Commit-Nachricht im Conventional Commits Format.",
+            "rules_title": "VERPFLICHTENDE REGELN",
+            "rules": [
+                "ANTWORTE MIT NUR EINER ZEILE. Keine Listen oder mehrere Nachrichten generieren.",
+                "Format: <Typ>(<Bereich>): <Beschreibung>",
+                "Sprache: DEUTSCH.",
+                "Erlaubte Typen: feat, fix, refactor, docs, chore, style, test, perf.",
+                "Der Bereich muss ein logisches Modul sein (z.B. config, auth, ui), KEIN Dateiname.",
+                'Keine Einleitungen, Erklärungen oder zusätzliche Kommentare.',
+                "Fasse ALLE Änderungen in einer einzigen, kohärenten Nachricht zusammen.",
+                "Max 72 Zeichen für die Beschreibung.",
+            ],
+            "example_title": "FORMATBEISPIEL (NICHT KOPIEREN)",
+            "example": "Typ(Bereich): kurze Beschreibung der Änderung",
+        },
+    }
 
-ESEMPIO FORMATO (NON COPIARE):
-tipo(ambito): descrizione breve della modifica
+    # Default: English
+    default = {
+        "intro": "Analyze the changes in the provided GIT DIFF at the end and write a SINGLE commit message in Conventional Commits format.",
+        "rules_title": "MANDATORY RULES",
+        "rules": [
+            "RESPOND WITH EXACTLY ONE LINE. Do NOT generate lists or multiple messages.",
+            "Format: <type>(<scope>): <description>",
+            "Language: ENGLISH.",
+            "Allowed types: feat, fix, refactor, docs, chore, style, test, perf.",
+            "The scope must be a logical module (e.g. config, auth, ui), NOT a filename.",
+            'Do NOT include introductions, explanations, or additional comments.',
+            "Summarize ALL changes into a single, coherent message.",
+            "Max 72 characters for the description.",
+        ],
+        "example_title": "FORMAT EXAMPLE (DO NOT COPY)",
+        "example": "type(scope): short description of the change",
+    }
 
-GIT DIFF:
-{diff}
-"""
+    p = prompts.get(language, default)
+    rules = "\n".join(f"{i}. {r}" for i, r in enumerate(p["rules"], 1))
 
-    # Default (English)
-    return f"""Analyze the changes in the provided GIT DIFF at the end and write a professional commit message in Conventional Commits format.
+    return f"""{p["intro"]}
 
-STRICT RULES:
-1. Output ONLY ONE message.
-2. Format: <type>(<scope>): <description>
-3. Language: ENGLISH.
-4. Allowed types: feat, fix, refactor, docs, chore, style, test, perf.
-5. Do NOT include introductions or explanations.
-6. Do NOT copy the examples below, use them for FORMAT only.
-7. Keep the description short and concise (max 72 characters).
+{p["rules_title"]}:
+{rules}
 
-FORMAT EXAMPLE (DO NOT COPY):
-type(scope): short description of the change
+{p["example_title"]}:
+{p["example"]}
 
 GIT DIFF:
 {diff}
@@ -262,7 +351,11 @@ def call_ollama(config, prompt):
     data = {
         "model": config["MODEL"],
         "prompt": prompt,
-        "stream": False
+        "stream": False,
+        "options": {
+            "temperature": 0.4,
+            "num_predict": 100,
+        }
     }
 
     req = urllib.request.Request(
@@ -274,13 +367,14 @@ def call_ollama(config, prompt):
 
     with urllib.request.urlopen(req, timeout=config["TIMEOUT"]) as response:
         log(f"Ollama response status: {response.status}")
-        if response.status == 200:
-            response_data = json.loads(response.read().decode('utf-8'))
-            commit_msg = response_data.get('response', '').strip()
-            commit_msg = sanitize_commit_message(commit_msg)
-            log(f"Generated commit_msg ({len(commit_msg)} chars): {commit_msg[:100]}...")
-            return commit_msg
-    return ""
+        if response.status != 200:
+            log(f"Ollama returned non-200 status: {response.status}")
+            return ""
+        response_data = json.loads(response.read().decode('utf-8'))
+        commit_msg = response_data.get('response', '').strip()
+        commit_msg = sanitize_commit_message(commit_msg)
+        log(f"Generated commit_msg ({len(commit_msg)} chars): {commit_msg[:100]}...")
+        return commit_msg
 
 
 # ── Interactive Mode ───────────────────────────────────────────
@@ -333,6 +427,11 @@ def interactive_confirm(config, prompt, commit_msg):
 
 def main():
     log("commit_ai.py started")
+
+    # Defensive skip check (mirrors prepare-commit-msg)
+    if os.environ.get("SKIP_COMMIT_AI"):
+        log("SKIP_COMMIT_AI is set, exiting")
+        sys.exit(0)
 
     if len(sys.argv) < 2:
         log("No argv[1] provided")

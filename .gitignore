@@ -3,3 +3,5 @@ dummy_commit_msg
 test_msg.txt
 *.pyc
 __pycache__/
+.commit-ai.conf
+.DS_Store
