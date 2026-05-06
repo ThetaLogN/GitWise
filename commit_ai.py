@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-GitWise — Genera messaggi di commit con Ollama.
-Invocato dall'hook prepare-commit-msg.
+GitWise — Generate commit messages with Ollama.
+Invoked by the prepare-commit-msg hook.
 """
 import sys
 import subprocess
@@ -19,10 +19,10 @@ DEFAULT_MAX_DIFF = 3000
 DEFAULT_LANGUAGE = "en"
 DEFAULT_TIMEOUT = 120
 
-# ── Configurazione ─────────────────────────────────────────────────
+# ── Configuration ─────────────────────────────────────────────────
 
 def get_repo_root():
-    """Restituisce la root del repository git corrente."""
+    """Returns the root of the current git repository."""
     try:
         result = subprocess.run(
             ['git', 'rev-parse', '--show-toplevel'],
@@ -35,8 +35,8 @@ def get_repo_root():
 
 def load_config():
     """
-    Carica la configurazione con priorità:
-    variabile d'ambiente > .commit-ai.conf > default hardcoded.
+    Loads configuration with priority:
+    Environment variable > .commit-ai.conf > hardcoded default.
     """
     config = {
         "OLLAMA_URL": DEFAULT_OLLAMA_URL,
@@ -46,7 +46,7 @@ def load_config():
         "TIMEOUT": DEFAULT_TIMEOUT,
     }
 
-    # Cerca .commit-ai.conf nella root del repo
+    # Look for .commit-ai.conf in repo root
     repo_root = get_repo_root()
     conf_path = os.path.join(repo_root, ".commit-ai.conf")
     if os.path.exists(conf_path):
@@ -62,7 +62,7 @@ def load_config():
                     if key in config:
                         config[key] = value
 
-    # Override con variabili d'ambiente (prefisso COMMIT_AI_)
+    # Override with environment variables (COMMIT_AI_ prefix)
     env_map = {
         "COMMIT_AI_URL": "OLLAMA_URL",
         "COMMIT_AI_MODEL": "MODEL",
@@ -75,7 +75,7 @@ def load_config():
         if val:
             config[conf_key] = val
 
-    # Cast dei tipi numerici
+    # Cast numeric types
     config["MAX_DIFF_LENGTH"] = int(config["MAX_DIFF_LENGTH"])
     config["TIMEOUT"] = int(config["TIMEOUT"])
 
@@ -84,25 +84,26 @@ def load_config():
 # ── Logging ─────────────────────────────────────────────────────────
 
 def get_log_path():
-    """Log nella home dell'utente sotto ~/.commit-ai/."""
+    """Logs in the user's home directory under ~/.commit-ai/."""
     log_dir = os.path.expanduser("~/.commit-ai")
     os.makedirs(log_dir, exist_ok=True)
     return os.path.join(log_dir, "commit_ai.log")
 
 
 def log(msg):
-    """Scrive un messaggio nel file di log con timestamp."""
+    """Writes a message to the log file with a timestamp."""
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     try:
         with open(get_log_path(), "a") as f:
             f.write(f"[{timestamp}] {msg}\n")
     except OSError:
-        pass  # Non bloccare mai il commit per un errore di log
+        pass  # Never block the commit due to a log error
+
 
 # ── Terminal I/O ───────────────────────────────────────────────────
 
 def tty_print(msg):
-    """Stampa un messaggio sul terminale (via /dev/tty per funzionare negli hook)."""
+    """Prints a message to the terminal (via /dev/tty to work within hooks)."""
     try:
         with open('/dev/tty', 'w') as tty:
             tty.write(msg)
@@ -112,18 +113,19 @@ def tty_print(msg):
 
 
 def tty_input(prompt):
-    """Legge input dall'utente via /dev/tty (necessario negli hook git)."""
+    """Reads input from the user via /dev/tty (necessary in git hooks)."""
     try:
         tty_print(prompt)
         with open('/dev/tty', 'r') as tty:
             return tty.readline().strip().lower()
     except OSError:
-        return "y"  # Se non c'è un terminale, accetta automaticamente
+        return "y"  # If no terminal is available, accept automatically
+
 
 # ── Git Diff ────────────────────────────────────────────────────────
 
 def get_git_diff():
-    """Restituisce il diff completo dell'area di staging."""
+    """Returns the full diff of the staging area."""
     try:
         result = subprocess.run(
             ['git', 'diff', '--cached'],
@@ -136,7 +138,7 @@ def get_git_diff():
 
 
 def get_git_stat():
-    """Restituisce il sommario statistico del diff (file + righe modificate)."""
+    """Returns the statistical summary of the diff (files + lines changed)."""
     try:
         result = subprocess.run(
             ['git', 'diff', '--cached', '--stat'],
@@ -149,9 +151,9 @@ def get_git_stat():
 
 def smart_truncate_diff(diff, max_length):
     """
-    Troncamento intelligente del diff:
-    1. Genera un sommario con git diff --stat (sempre incluso)
-    2. Riempie lo spazio rimanente con il diff reale, troncando per righe complete
+    Smart diff truncation:
+    1. Genera a summary with git diff --stat (always included)
+    2. Fills remaining space with the actual diff, truncating by full lines
     """
     if len(diff) <= max_length:
         return diff
@@ -163,7 +165,7 @@ def smart_truncate_diff(diff, max_length):
     if budget <= 0:
         return header
 
-    # Tronca per righe complete, non a metà riga
+    # Truncate by full lines, not in the middle of a line
     lines = diff.split('\n')
     truncated_lines = []
     current_length = 0
@@ -176,20 +178,20 @@ def smart_truncate_diff(diff, max_length):
     truncated_diff = '\n'.join(truncated_lines)
     return f"{header}{truncated_diff}\n...[diff truncated]"
 
-# ── Sanitizzazione Output ──────────────────────────────────────────
+
+# ── Output Sanitization ──────────────────────────────────────────
 
 def sanitize_commit_message(msg):
     """
-    Pulisce l'output del modello:
-    - Rimuove code blocks (```...```)
-    - Rimuove prefissi comuni ("Here is...", "Commit message:", ecc.)
-    - Rimuove righe vuote iniziali/finali
-    - Tronca la subject line a 72 caratteri
+    Cleans the model's output:
+    - Removes code blocks (```...```)
+    - Removes common prefixes ("Here is...", "Commit message:", etc.)
+    - Removes leading/trailing whitespace
     """
-    # Rimuovi code blocks
+    # Remove code blocks
     msg = re.sub(r'```[\w]*\n?', '', msg)
 
-    # Rimuovi prefissi comuni
+    # Remove common prefixes
     prefixes = [
         r'^Here is.*?:\s*\n',
         r'^Here\'s.*?:\s*\n',
@@ -200,7 +202,7 @@ def sanitize_commit_message(msg):
     for pattern in prefixes:
         msg = re.sub(pattern, '', msg, flags=re.IGNORECASE)
 
-    # Pulizia whitespace
+    # Clean whitespace
     msg = msg.strip()
 
     if not msg:
@@ -208,10 +210,11 @@ def sanitize_commit_message(msg):
 
     return msg
 
+
 # ── Prompt ──────────────────────────────────────────────────────────
 
 def build_prompt(diff, language):
-    """Costruisce il prompt per il modello in base alla lingua scelta."""
+    """Builds the prompt for the model based on the chosen language."""
     
     if language == "it":
         return f"""Analizza le modifiche nel GIT DIFF fornito alla fine e scrivi un messaggio di commit professionale in formato Conventional Commits.
@@ -251,10 +254,11 @@ GIT DIFF:
 {diff}
 """
 
+
 # ── Ollama API ─────────────────────────────────────────────────────
 
 def call_ollama(config, prompt):
-    """Invia il prompt a Ollama e restituisce il messaggio generato (già sanitizzato)."""
+    """Sends the prompt to Ollama and returns the generated (sanitized) message."""
     data = {
         "model": config["MODEL"],
         "prompt": prompt,
@@ -278,50 +282,52 @@ def call_ollama(config, prompt):
             return commit_msg
     return ""
 
-# ── Modalità Interattiva ───────────────────────────────────────────
+
+# ── Interactive Mode ───────────────────────────────────────────
 
 def interactive_confirm(config, prompt, commit_msg):
     """
-    Mostra il messaggio generato e chiede conferma all'utente.
-    Ritorna (messaggio, accettato) dove accettato indica se il messaggio è stato confermato.
-    Il messaggio viene sempre restituito per poterlo pre-compilare nell'editor.
+    Shows the generated message and asks for user confirmation.
+    Returns (message, accepted) where accepted indicates if the message was confirmed.
+    The message is always returned so it can be pre-filled in the editor.
     """
     while True:
         tty_print("\n┌─────────────────────────────────────────────┐\n")
-        tty_print("│  GitWise — Commit Message Generato          │\n")
+        tty_print("│  GitWise — Generated Commit Message         │\n")
         tty_print("└─────────────────────────────────────────────┘\n\n")
 
-        # Mostra il messaggio con indentazione
+        # Show message with indentation
         for line in commit_msg.split('\n'):
             tty_print(f"  {line}\n")
 
         tty_print("\n")
-        choice = tty_input("  [y] Accetta  [r] Rigenera  [e] Modifica nell'editor  [q] Rifiuta → ")
+        choice = tty_input("  [y] Accept  [r] Regenerate  [e] Edit in editor  [q] Abort → ")
 
         if choice in ('', 'y', 'yes', 's', 'si', 'sì'):
             log("User accepted commit message")
             return commit_msg, True
         elif choice in ('r', 'rigenera', 'regenerate'):
-            tty_print("\n Rigenerando...\n")
+            tty_print("\n Regenerating...\n")
             try:
                 commit_msg = call_ollama(config, prompt)
                 if not commit_msg:
-                    tty_print("  Errore: risposta vuota da Ollama.\n")
+                    tty_print("  Error: empty response from Ollama.\n")
                     return "", False
             except Exception as e:
-                tty_print(f"  Errore: {e}\n")
+                tty_print(f"  Error: {e}\n")
                 log(f"Regeneration error: {e}")
                 return "", False
         elif choice in ('e', 'edit', 'modifica'):
             log("User wants to edit in editor")
-            tty_print("  Ok, il messaggio sarà pre-compilato nell'editor.\n")
+            tty_print("  Ok, the message will be pre-filled in the editor.\n")
             return commit_msg, False
-        elif choice in ('q', 'quit', 'rifiuta', 'n', 'no'):
+        elif choice in ('q', 'quit', 'abort', 'n', 'no'):
             log("User rejected AI commit message - aborting commit")
-            tty_print("  ❌ Commit annullato.\n")
+            tty_print("  ❌ Commit aborted.\n")
             sys.exit(1)
         else:
-            tty_print("  Scelta non valida. Usa: y (accetta), r (rigenera), e (modifica), q (rifiuta)\n")
+            tty_print("  Invalid choice. Use: y (accept), r (regenerate), e (edit), q (abort)\n")
+
 
 # ── Main ────────────────────────────────────────────────────────────
 
@@ -339,20 +345,20 @@ def main():
         log("commit_msg_file does not exist")
         sys.exit(0)
 
-    # Carica configurazione
+    # Load configuration
     config = load_config()
     log(f"Config: model={config['MODEL']}, lang={config['LANGUAGE']}, max_diff={config['MAX_DIFF_LENGTH']}")
 
-    # Leggi il diff
+    # Read the diff
     diff = get_git_diff()
     if not diff.strip():
         log("Empty diff")
         sys.exit(0)
 
-    # Troncamento intelligente
+    # Smart truncation
     diff = smart_truncate_diff(diff, config["MAX_DIFF_LENGTH"])
 
-    # Costruisci il prompt
+    # Build prompt
     prompt = build_prompt(diff, config["LANGUAGE"])
 
     log("Sending request to Ollama")
@@ -364,11 +370,11 @@ def main():
 
         if not commit_msg:
             with open(commit_msg_file, 'a') as f:
-                f.write("\n# ⚠️  GitWise: Risposta vuota da Ollama. Scrivi il commit manualmente.\n")
-            print("⚠️  Risposta vuota da Ollama. Scrivi il commit manualmente.", file=sys.stderr)
+                f.write("\n# ⚠️  GitWise: Empty response from Ollama. Write the commit manually.\n")
+            print("⚠️  Empty response from Ollama. Write the commit manually.", file=sys.stderr)
             sys.exit(0)
 
-        # Modalità interattiva: mostra e chiedi conferma
+        # Interactive mode: show and ask for confirmation
         commit_msg, accepted = interactive_confirm(config, prompt, commit_msg)
 
         if commit_msg:
@@ -379,16 +385,16 @@ def main():
                 f.write(f"{commit_msg}\n\n{original_content}")
 
             if accepted:
-                tty_print("✅ Commit message applicato!\n")
+                tty_print("✅ Commit message applied!\n")
             else:
-                tty_print("Messaggio pre-compilato. Modificalo nell'editor.\n")
+                tty_print("Message pre-filled. Edit it in your editor.\n")
             log("commit_msg written successfully")
 
     except Exception as e:
         log(f"GitWise error: {e}")
-        # Determina se è un errore di connessione o altro
-        error_type = "Ollama non raggiungibile" if "urlopen" in str(e) or "refused" in str(e) else "Errore interno"
-        error_msg = f"\n# ⚠️  GitWise: {error_type} ({e})\n# Scrivi il messaggio di commit manualmente.\n"
+        # Determine if it's a connection error or something else
+        error_type = "Ollama unreachable" if "urlopen" in str(e) or "refused" in str(e) else "Internal error"
+        error_msg = f"\n# ⚠️  GitWise: {error_type} ({e})\n# Write the commit message manually.\n"
         
         try:
             with open(commit_msg_file, 'a') as f:
@@ -396,7 +402,7 @@ def main():
         except Exception as file_err:
             log(f"Failed to write error comment to file: {file_err}")
         
-        print(f"⚠️  GitWise: {error_type}. Scrivi il commit manualmente.", file=sys.stderr)
+        print(f"⚠️  GitWise: {error_type}. Write the commit manually.", file=sys.stderr)
         sys.exit(0)
 
 
