@@ -31,7 +31,7 @@ Nessun dato lascia il tuo computer. Tutto gira in locale.
 
 ## Installazione
 
-### 🚀 Installazione Rapida (consigliata)
+### Installazione Rapida (consigliata)
 
 Dalla root del tuo repository git, esegui:
 
