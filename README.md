@@ -2,6 +2,9 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
+![GitWise Demo](media/demo.gif)
+
+
 Automatically generates commit messages in **Conventional Commits** format using a local AI model via [Ollama](https://ollama.ai/).
 
 No data leaves your computer. Everything runs locally.
